@@ -139,7 +139,6 @@ int main() {
             headers_add(&res.headers, "Content-Length", length_str);
 
             headers_add(&res.headers, "Content-Type", "text/plain");
-            headers_add(&res.headers, "Connection", "close");
         } else {
             res.status_code = STATUS_BAD_REQUEST;
         }
