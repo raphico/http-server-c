@@ -17,4 +17,5 @@ typedef struct {
 
 int headers_init(headers_t *headers);
 void headers_add(headers_t *headers, const char *key, const char *value);
+char *headers_get(headers_t *headers, const char *key);
 void headers_cleanup(headers_t *headers);

@@ -135,12 +135,34 @@ int main() {
             }
 
             char length_str[16];
-            snprintf(length_str, sizeof(length_str), "%d", (int)res.body_len);
+            snprintf(length_str, sizeof(length_str), "%zu", res.body_len);
             headers_add(&res.headers, "Content-Length", length_str);
 
             headers_add(&res.headers, "Content-Type", "text/plain");
         } else {
             res.status_code = STATUS_BAD_REQUEST;
+            headers_add(&res.headers, "Content-Length", "0");
+        }
+    }  else if (strcmp(req.url, "/user-agent") == 0) {
+        char *user_agent = headers_get(&req.headers, "user-agent");
+        if (!user_agent) {
+            res.status_code = STATUS_BAD_REQUEST;
+            headers_add(&res.headers, "Content-Length", "0");
+        } else {
+            int n = snprintf(res.body, sizeof(res.body), "%s", user_agent);
+            if (n < 0 || n >= (int)sizeof(res.body)) {
+                res.status_code = STATUS_INTERNAL_SERVER_ERR;
+                headers_add(&res.headers, "Content-Length", "0");
+            } else {
+                res.status_code = STATUS_OK;
+                res.body_len = (size_t)n;
+
+                char length_str[16];
+                snprintf(length_str, sizeof(length_str), "%zu", res.body_len);
+                headers_add(&res.headers, "Content-Length", length_str);
+
+                headers_add(&res.headers, "Content-Type", "text/plain");
+            }
         }
     } else {
         res.status_code = STATUS_NOT_FOUND;

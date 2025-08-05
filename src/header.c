@@ -37,6 +37,19 @@ void headers_add(headers_t *headers, const char *key, const char *value) {
     headers->count++;
 }
 
+char *headers_get(headers_t *headers, const char *key) {
+    char *v = canonicalize_key(key);
+    for (int i = 0, n = headers->count; i < n; i++) {
+        if (strcmp(headers->items[i].key, v) == 0) {
+            free(v);
+            return headers->items[i].value; 
+        }
+    }
+
+    free(v);
+    return NULL; 
+}
+
 char *canonicalize_key(const char *key) {
     int len = strlen(key);
     char *canonical_key = malloc(len + 1);

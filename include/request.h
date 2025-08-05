@@ -1,6 +1,9 @@
 #pragma once
 
+#include "header.h"
+
 typedef struct {
+    headers_t headers;
     char *method;
     char *url;
 } request_t;
