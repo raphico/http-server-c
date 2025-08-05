@@ -126,7 +126,7 @@ int send_response(int fd, int status_code) {
     int len = snprintf(
         buf, 
         sizeof(buf), 
-        "HTTP/1.1 %d %s\r\n", 
+        "HTTP/1.1 %d %s\r\n\r\n", 
         status_code, 
         status_text(status_code)
     );
