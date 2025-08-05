@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,18 +14,22 @@ typedef struct {
 enum HttpStatus {
     STATUS_OK = 200,
     STATUS_NOT_FOUND = 404,
+    STATUS_BAD_REQUEST = 400,
+    STATUS_INTERNAL_SERVER_ERR = 500,
 };
 
 enum ParseError {
     PARSE_ERR_READ = -1,
     PARSE_ERR_CLOSED = -2,
-    PARSE_ERR_INVALID = -3
+    PARSE_ERR_INVALID = -3,
+    PARSE_ERR_INTERNAL = -4,
 };
 
 int parse_request(int fd, request *req);
 int send_response(int fd, int status_code);
 const char *status_text(int status_code);
 void cleanup(request *req);
+__attribute__((noreturn)) void panic(const char *msg);
 
 int main() {
     // Disables output buffering
@@ -39,16 +42,16 @@ int main() {
     // opens a TCP socket
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
-        printf("Socket creation failed: %s\n", strerror(errno));
-        return 1;
+        perror("socket");
+        goto cleanup;
     }
 
     // allows the server to reuse the port immediately after it restarts
     // ensures we don't run into "Already in use" error
     int reuse = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-        printf("SO_REUSEADDR failed: %s\n", strerror(errno));
-        return 1;
+        perror("setsockopt");
+        goto cleanup;
     }
 
     // defines an IPV4 socket address
@@ -60,8 +63,8 @@ int main() {
 
     // binds the socket to IP + port
     if (bind(server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) != 0) {
-        printf("bind failed: %s\n", strerror(errno));
-        return 1;
+        perror("bind");
+        goto cleanup;
     }
 
     // sets the maximum number of pending connections
@@ -69,8 +72,8 @@ int main() {
 
     // marks the open socket as passive, meaning it is ready to receive incoming client connections
     if (listen(server_fd, connection_backlog) != 0) {
-        printf("listen failed: %s\n", strerror(errno));
-        return 1;
+        perror("listen");
+        goto cleanup;
     }
 
     printf("Waiting for a client to connect...\n");
@@ -79,55 +82,61 @@ int main() {
     // blocks and wait until a client connect
     int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
     if (client_fd < 0) {
-        printf("accept failed: %s\n", strerror(errno));
-        return 1;
+        perror("accept");
+        goto cleanup;
     }
 
 	printf("Client connected\n");
 
-    request req;
+    request req = {0};
     int result = parse_request(client_fd, &req);
-    if (result == PARSE_ERR_READ) {
-        printf("failed to read client connection");
-        return -1;
-    }
-
-    if (result == PARSE_ERR_CLOSED) {
-        printf("connection closed\n");
-        return -1;
-    }
-
-    if (result == PARSE_ERR_INVALID) {
-        printf("invalid request");
-        return -1;
-    }
-
-    if (strcmp(req.url, "/") == 0) {
-        if (send_response(client_fd, STATUS_OK) == -1) {
-            printf("write failed");
-            return -1;
+    if (result < 0) {
+         if (result == PARSE_ERR_INTERNAL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            send_response(client_fd, STATUS_INTERNAL_SERVER_ERR);
+        } else {
+        switch (result) {
+            case PARSE_ERR_READ:
+                fprintf(stderr, "Failed to read from client (I/O error)\n");
+                break;
+            case PARSE_ERR_CLOSED:
+                fprintf(stderr, "Client closed connection unexpectedly\n");
+                break;
+            case PARSE_ERR_INVALID:
+                fprintf(stderr, "Malformed HTTP request\n");
+                break;
+            default:
+                fprintf(stderr, "Unknown parsing error code: %d\n", result);
+                break;
         }
-    } else {
-        if (send_response(client_fd, STATUS_NOT_FOUND) == -1) {
-            printf("write failed");
-            return -1;
+            send_response(client_fd, STATUS_BAD_REQUEST);
         }
+        goto cleanup;
     }
 
-    cleanup(&req);
-    close(server_fd);
-    close(client_fd);
-    
-    return 0;
+
+    int status_code = (strcmp(req.url, "/") == 0) ? STATUS_OK : STATUS_NOT_FOUND;
+    if (send_response(client_fd, status_code) == -1) {
+        perror("send_response");
+        goto cleanup;
+    }
+
+    cleanup:
+        cleanup(&req);
+        if (client_fd != -1) close(client_fd);
+        if (server_fd != -1) close(server_fd);
+        return 0;
 }
 
 int send_response(int fd, int status_code) {
     char buf[1024];
     int len = snprintf(
-        buf, 
-        sizeof(buf), 
-        "HTTP/1.1 %d %s\r\n\r\n", 
-        status_code, 
+        buf, sizeof(buf),
+        "HTTP/1.1 %d %s\r\n"
+        "Content-Length: 0\r\n"
+        "Connection: close\r\n"
+        "\r\n",
+        status_code,
         status_text(status_code)
     );
     if (len < 0 || len >= sizeof(buf)) {
@@ -136,7 +145,7 @@ int send_response(int fd, int status_code) {
 
 	ssize_t total_sent = 0;
 	while (total_sent < len) {
-		ssize_t sent = write(fd, buf + total_sent, len - total_sent);
+        ssize_t sent = send(fd, buf + total_sent, len - total_sent, MSG_NOSIGNAL);
 		if (sent < 0) {
             return -1;
 		}
@@ -151,20 +160,22 @@ const char *status_text(int status_code) {
     switch (status_code) {
         case STATUS_OK: return "OK";
         case STATUS_NOT_FOUND: return "Not Found";
-        default: return "Unknown status code";
+        case STATUS_BAD_REQUEST: return "Bad Request";
+        case STATUS_INTERNAL_SERVER_ERR: return "Internal Server Error";
+        default: panic("Unexpected status code");
     }
 }
 
 int parse_request(int fd, request *req) {
-    char status_line[1024];
-    char buf[1];
+    char request_line[4096];
     ssize_t n;
     int i = 0;
 
-    // reads the status line
-    while (true) {
-        n = read(fd, buf, sizeof(buf));
+    while (i < (int)(sizeof(request_line) - 1)) {
+        char ch;
+        n = recv(fd, &ch, 1, 0);
         if (n < 0) {
+            perror("recv");
             return PARSE_ERR_READ;
         }
 
@@ -172,30 +183,28 @@ int parse_request(int fd, request *req) {
             return PARSE_ERR_CLOSED;
         }
 
-        if (buf[0] == '\n') {
-            break;
-        }
+        if (ch == '\r') continue;
+        if (ch == '\n') break;
 
-        if (buf[0] == '\r') {
-            continue;
-        }
-
-        status_line[i++] = buf[0];
+        request_line[i++] = ch;
     }
 
-    status_line[i] = '\0';
+    request_line[i] = '\0';
 
     char *save_ptr;
-
-    char *method = strtok_r(status_line, " ", &save_ptr);
+    char *method = strtok_r(request_line, " ", &save_ptr);
     char *url = strtok_r(NULL, " ", &save_ptr);
 
-    if (method == NULL || url == NULL) {
+    if (!method || !url) {
         return PARSE_ERR_INVALID;
     }
 
     req->method = strdup(method);
     req->url = strdup(url);
+    if (!req->method || !req->url) {
+        cleanup(req);
+        return PARSE_ERR_INTERNAL;
+    }
 
     return 0;
 }
@@ -206,4 +215,9 @@ void cleanup(request *req) {
     
     req->method = NULL;
     req->url = NULL;
+}
+
+void panic(const char *msg) {
+    fprintf(stderr, "PANIC: %s\n", msg);
+    abort();
 }
