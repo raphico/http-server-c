@@ -5,7 +5,7 @@
 #include <string.h>
 
 void handle_echo(request_t *req, response_t *res) {
-    const char *echo = req->url + 6;
+    const char *echo = req->url + 6; // skips "/echo/"
 
     int n = snprintf(res->body, sizeof(res->body), "%s", echo);
     if (n < 0 || n >= (int)sizeof(res->body)) {

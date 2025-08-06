@@ -1,8 +1,9 @@
 #include "dispatcher.h"
 #include "handlers/echo.h"
+#include "handlers/files.h"
 #include "handlers/home.h"
+#include "handlers/not_found.h"
 #include "handlers/user_agent.h"
-#include "headers.h"
 #include "status.h"
 #include <string.h>
 
@@ -19,6 +20,9 @@ void dispatcher(request_t *req, response_t *res) {
         return handle_user_agent(req, res);
     }
 
-    res->status_code = STATUS_NOT_FOUND;
-    headers_add(&res->headers, "Content-Length", "0");
+    if (strncmp(req->url, "/files/", 7) == 0) {
+        return handle_get_file(req, res);
+    }
+
+    return handle_not_found(req, res);
 }

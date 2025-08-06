@@ -1,6 +1,7 @@
 #pragma once
 
 #include "headers.h"
+#include "server.h"
 #include <stddef.h>
 
 enum {
@@ -13,9 +14,10 @@ typedef struct {
     int status_code;
     size_t body_len;
     headers_t headers;
+    const server_ctx_t *config;
 } response_t;
 
-int response_init(response_t *res);
+int response_init(response_t *res, const server_ctx_t *ctx);
 void response_cleanup(response_t *res);
 void response_send_status(int fd, int status_code);
 int response_send(int fd, response_t *res);

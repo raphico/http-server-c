@@ -27,5 +27,4 @@ void handle_user_agent(request_t *req, response_t *res) {
     snprintf(len_str, sizeof(len_str), "%zu", res->body_len);
     headers_add(&res->headers, "Content-Length", len_str);
     headers_add(&res->headers, "Content-Type", "text/plain");
-    return;
 }

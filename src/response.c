@@ -1,11 +1,12 @@
 #include "response.h"
 #include "headers.h"
+#include "server.h"
 #include "status.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/socket.h>
 
-int response_init(response_t *res) {
+int response_init(response_t *res, const server_ctx_t *ctx) {
     if (!res) {
         return -1;
     }
@@ -13,6 +14,7 @@ int response_init(response_t *res) {
     res->status_code = 0;
     res->body[0] = '\0';
     res->body_len = 0;
+    res->config = ctx;
     return headers_init(&res->headers);
 }
 

@@ -10,9 +10,14 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+typedef struct {
+    int client_fd;
+    const server_ctx_t *ctx;
+} connection_args_t;
+
 void *handle_connection(void *arg);
 
-void server_start(const int port) {
+void server_start(const int port, char *directory) {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         perror("socket");
@@ -47,6 +52,10 @@ void server_start(const int port) {
         exit(1);
     }
 
+    server_ctx_t server_ctx = {
+        .directory = directory,
+    };
+
     int connection_backlog = 5;
 
     if (listen(server_fd, connection_backlog) != 0) {
@@ -58,21 +67,28 @@ void server_start(const int port) {
     printf("Server listening on port %d...\n", port);
 
     while (1) {
-        int *client_fd = malloc(sizeof(int));
-        *client_fd = accept(server_fd, NULL, NULL);
-        if (client_fd < 0) {
+        connection_args_t *args = malloc(sizeof(connection_args_t));
+        if (!args) {
+            perror("malloc");
+            continue;
+        }
+
+        args->ctx = &server_ctx;
+        args->client_fd = accept(server_fd, NULL, NULL);
+
+        if (args->client_fd < 0) {
             perror("accept");
-            free(client_fd);
+            free(args);
             continue;
         }
 
         printf("Client connected (thread: %lu)\n", pthread_self());
 
         pthread_t thread;
-        if (pthread_create(&thread, NULL, handle_connection, client_fd) != 0) {
+        if (pthread_create(&thread, NULL, handle_connection, args) != 0) {
             perror("pthread_create");
-            close(*client_fd);
-            free(client_fd);
+            close(args->client_fd);
+            free(args);
             continue;
         }
 
@@ -81,7 +97,9 @@ void server_start(const int port) {
 }
 
 void *handle_connection(void *arg) {
-    int client_fd = *(int *)arg;
+    connection_args_t *args = (connection_args_t *)arg;
+    int client_fd = args->client_fd;
+    const server_ctx_t *ctx = args->ctx;
     free(arg);
 
     request_t req = {0};
@@ -89,7 +107,7 @@ void *handle_connection(void *arg) {
 
     request_init(&req);
 
-    if (response_init(&res) < 0) {
+    if (response_init(&res, ctx) < 0) {
         fprintf(stderr, "Failed to init response (headers alloc failed)\n");
         response_send_status(client_fd, STATUS_INTERNAL_SERVER_ERR);
         return NULL;
