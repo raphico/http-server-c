@@ -97,6 +97,9 @@ void handle_get_file(request_t *req, response_t *res) {
         return;
     }
 
+    res->content_encoding =
+        supports_gzip(req) ? ENCODING_GZIP : ENCODING_IDENTITY;
+
     res->status_code = STATUS_OK;
     res->body_len = total_read;
 

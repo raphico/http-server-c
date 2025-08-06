@@ -1,4 +1,5 @@
 #include "handlers/echo.h"
+#include "compression.h"
 #include "headers.h"
 #include "status.h"
 #include <stdio.h>
@@ -13,6 +14,9 @@ void handle_echo(request_t *req, response_t *res) {
         headers_add(&res->headers, "Content-Length", "0");
         return;
     }
+
+    res->content_encoding =
+        supports_gzip(req) ? ENCODING_GZIP : ENCODING_IDENTITY;
 
     res->status_code = STATUS_OK;
     res->body_len = (size_t)n;

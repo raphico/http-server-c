@@ -1,4 +1,5 @@
 #include "response.h"
+#include "compression.h"
 #include "headers.h"
 #include "server.h"
 #include "status.h"
@@ -37,6 +38,10 @@ void response_send_status(int fd, int status_code) {
 int response_send(int fd, response_t *res) {
     char header[MAX_HEADER_SIZE];
     size_t offset = 0;
+
+    if (res->content_encoding == ENCODING_GZIP) {
+        headers_add(&res->headers, "Content-Encoding", "gzip");
+    }
 
     // Add status line
     int n = snprintf(header, sizeof(header), "HTTP/1.1 %d %s\r\n",

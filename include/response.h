@@ -1,5 +1,6 @@
 #pragma once
 
+#include "compression.h"
 #include "headers.h"
 #include "protocol.h"
 #include "server.h"
@@ -11,6 +12,7 @@ typedef struct {
     size_t body_len;
     headers_t headers;
     const server_ctx_t *config;
+    content_encoding_t content_encoding;
 } response_t;
 
 int response_init(response_t *res, const server_ctx_t *ctx);
