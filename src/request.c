@@ -55,7 +55,7 @@ int request_parse(int fd, request_t *req) {
 
     // read headers
     headers_t headers = {0};
-    if (headers_init(&headers) < 0)  {
+    if (headers_init(&headers) < 0) {
         return PARSE_ERR_INTERNAL;
     }
 
@@ -99,7 +99,8 @@ int request_parse(int fd, request_t *req) {
         }
 
         // trim any leading whitespace
-        while (*value == ' ') value++;
+        while (*value == ' ')
+            value++;
 
         headers_add(&headers, key, value);
         i = 0;

@@ -42,12 +42,12 @@ char *headers_get(headers_t *headers, const char *key) {
     for (int i = 0, n = headers->count; i < n; i++) {
         if (strcmp(headers->items[i].key, v) == 0) {
             free(v);
-            return headers->items[i].value; 
+            return headers->items[i].value;
         }
     }
 
     free(v);
-    return NULL; 
+    return NULL;
 }
 
 char *canonicalize_key(const char *key) {
