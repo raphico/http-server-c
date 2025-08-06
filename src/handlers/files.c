@@ -61,7 +61,7 @@ bool isPathSafe(const char *base_path, const char *full_path) {
     }
 
     // check if resolve_path starts with base_path
-    size_t base_len = strlen(base_path);
+    size_t base_len = strlen(resolved_base);
     return strncmp(resolved_target, resolved_base, base_len) == 0 &&
            (resolved_target[base_len] == '/' || resolved_target[base_len] == '\0');
 }
