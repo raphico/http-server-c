@@ -1,5 +1,5 @@
 #include "server.h"
-#include "handlers.h"
+#include "dispatcher.h"
 #include "request.h"
 #include "response.h"
 #include "status.h"
@@ -103,7 +103,7 @@ void *handle_connection(void *arg) {
         goto cleanup;
     }
 
-    handlers_handle_route(&req, &res);
+    dispatcher(&req, &res);
 
     if (response_send(client_fd, &res) == -1) {
         perror("send_response");
