@@ -7,6 +7,8 @@ const char *status_text(int status_code) {
         return "OK";
     case STATUS_NOT_FOUND:
         return "Not Found";
+    case STATUS_CREATED:
+        return "Created";
     case STATUS_BAD_REQUEST:
         return "Bad Request";
     case STATUS_INTERNAL_SERVER_ERR:

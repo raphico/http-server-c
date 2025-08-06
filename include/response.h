@@ -1,13 +1,9 @@
 #pragma once
 
 #include "headers.h"
+#include "protocol.h"
 #include "server.h"
 #include <stddef.h>
-
-enum {
-    MAX_BODY_SIZE = 4096,
-    MAX_HEADER_SIZE = 1024,
-};
 
 typedef struct {
     char body[MAX_BODY_SIZE];

@@ -1,5 +1,6 @@
 #include "request.h"
 #include "headers.h"
+#include "protocol.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,12 +17,12 @@ void request_init(request_t *req) {
 }
 
 int request_parse(int fd, request_t *req) {
-    char request_line[1024];
+    char request_line[MAX_REQUEST_LINE_SIZE];
     ssize_t n;
     int i = 0;
 
     // read request line
-    while (i < (int)(sizeof(request_line) - 1)) {
+    while (i < MAX_REQUEST_LINE_SIZE - 1) {
         char ch;
         n = recv(fd, &ch, 1, 0);
         if (n < 0) {
@@ -59,7 +60,7 @@ int request_parse(int fd, request_t *req) {
         return PARSE_ERR_INTERNAL;
     }
 
-    char buf[1024];
+    char buf[MAX_HEADER_LINE_SIZE];
     i = 0;
     while (1) {
         char ch;
@@ -78,6 +79,11 @@ int request_parse(int fd, request_t *req) {
         }
 
         if (ch != '\n') {
+            if (i >= MAX_HEADER_LINE_SIZE - 1) {
+                headers_cleanup(&headers);
+                return PARSE_ERR_INVALID;
+            }
+
             buf[i++] = ch;
             continue;
         }
@@ -88,6 +94,7 @@ int request_parse(int fd, request_t *req) {
         }
 
         buf[i] = '\0';
+        i = 0;
 
         char *save_ptr;
         char *key = strtok_r(buf, ":", &save_ptr);
@@ -103,12 +110,31 @@ int request_parse(int fd, request_t *req) {
             value++;
 
         headers_add(&headers, key, value);
-        i = 0;
+    }
+
+    // read body
+    char *len_str = headers_get(&headers, "content-length");
+    if (len_str) {
+        char *end_prt;
+        long len = strtol(len_str, &end_prt, 10);
+        if (*end_prt != '\0' || len > MAX_BODY_SIZE || len < 0) {
+            headers_cleanup(&headers);
+            return PARSE_ERR_INVALID;
+        }
+
+        n = recv(fd, req->body, len, 0);
+        if (n < 0) {
+            perror("recv");
+            return PARSE_ERR_READ;
+        }
+
+        req->body_len = (size_t)n;
     }
 
     req->method = strdup(method);
     req->url = strdup(url);
     req->headers = headers;
+
     if (!req->method || !req->url) {
         request_cleanup(req);
         return PARSE_ERR_INTERNAL;

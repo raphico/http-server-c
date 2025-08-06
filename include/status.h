@@ -1,6 +1,7 @@
 #pragma
 
 enum HttpStatus {
+    STATUS_CREATED = 201,
     STATUS_OK = 200,
     STATUS_NOT_FOUND = 404,
     STATUS_BAD_REQUEST = 400,

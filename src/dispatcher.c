@@ -21,7 +21,13 @@ void dispatcher(request_t *req, response_t *res) {
     }
 
     if (strncmp(req->url, "/files/", 7) == 0) {
-        return handle_get_file(req, res);
+        if (strcmp(req->method, "GET") == 0) {
+            return handle_get_file(req, res);
+        }
+
+        if (strcmp(req->method, "POST") == 0) {
+            return handle_post_file(req, res);
+        }
     }
 
     return handle_not_found(req, res);

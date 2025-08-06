@@ -1,11 +1,14 @@
 #pragma once
 
 #include "headers.h"
+#include "protocol.h"
 
 typedef struct {
     headers_t headers;
     char *method;
     char *url;
+    char body[MAX_BODY_SIZE];
+    size_t body_len;
 } request_t;
 
 enum ParseError {
