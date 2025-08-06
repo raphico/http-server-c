@@ -32,6 +32,7 @@ void handle_get_file(request_t *req, response_t *res) {
     if (!isPathSafe(base_path, full_path)) {
         res->status_code = STATUS_BAD_REQUEST;
         headers_add(&res->headers, "Content-Length", "0");
+        fclose(file);
         return;
     }
 
@@ -48,14 +49,19 @@ void handle_get_file(request_t *req, response_t *res) {
 }
 
 bool isPathSafe(const char *base_path, const char *full_path) {
-    // resolve any symlinks(e.g .., .)
-    char resolved_path[PATH_MAX];
-    if (!realpath(full_path, resolved_path)) {
+    char resolved_base[PATH_MAX];
+    char resolved_target[PATH_MAX];
+
+    if (!realpath(full_path, resolved_target)) {
+        return false;
+    }
+
+    if (!realpath(base_path, resolved_base)) {
         return false;
     }
 
     // check if resolve_path starts with base_path
     size_t base_len = strlen(base_path);
-    return strncmp(resolved_path, base_path, base_len) == 0 &&
-           (resolved_path[base_len] == '/' || resolved_path[base_len] == '\0');
+    return strncmp(resolved_target, resolved_base, base_len) == 0 &&
+           (resolved_target[base_len] == '/' || resolved_target[base_len] == '\0');
 }
