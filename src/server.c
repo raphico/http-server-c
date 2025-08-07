@@ -1,5 +1,6 @@
 #include "server.h"
 #include "dispatcher.h"
+#include "headers.h"
 #include "request.h"
 #include "response.h"
 #include "status.h"
@@ -7,6 +8,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -102,35 +104,43 @@ void *handle_connection(void *arg) {
     const server_ctx_t *ctx = args->ctx;
     free(arg);
 
-    request_t req = {0};
-    response_t res = {0};
+    while (1) {
+        request_t req = {0};
+        response_t res = {0};
 
-    request_init(&req);
+        request_init(&req);
 
-    if (response_init(&res, ctx) < 0) {
-        fprintf(stderr, "Failed to init response (headers alloc failed)\n");
-        response_send_status(client_fd, STATUS_INTERNAL_SERVER_ERR);
-        return NULL;
+        if (response_init(&res, ctx) < 0) {
+            fprintf(stderr, "Failed to init response (headers alloc failed)\n");
+            response_send_status(client_fd, STATUS_INTERNAL_SERVER_ERR);
+            return NULL;
+        }
+
+        int err = request_parse(client_fd, &req);
+        if (err < 0) {
+            res.status_code = err == PARSE_ERR_INTERNAL
+                                  ? STATUS_INTERNAL_SERVER_ERR
+                                  : STATUS_BAD_REQUEST;
+            response_send(client_fd, &res);
+        }
+
+        dispatcher(&req, &res);
+
+        if (response_send(client_fd, &res) == -1) {
+            perror("send_response");
+        }
+
+        char *conn_header = headers_get(&req.headers, "connection");
+        bool close_conn = conn_header && strcasecmp(conn_header, "close") == 0;
+
+        response_cleanup(&res);
+        request_cleanup(&req);
+
+        if (close_conn) {
+            break;
+        }
     }
 
-    int err = request_parse(client_fd, &req);
-    if (err < 0) {
-        res.status_code = err == PARSE_ERR_INTERNAL ? STATUS_INTERNAL_SERVER_ERR
-                                                    : STATUS_BAD_REQUEST;
-        response_send(client_fd, &res);
-        goto cleanup;
-    }
-
-    dispatcher(&req, &res);
-
-    if (response_send(client_fd, &res) == -1) {
-        perror("send_response");
-    }
-
-cleanup:
-    response_cleanup(&res);
-    request_cleanup(&req);
     close(client_fd);
-
     return NULL;
 }
