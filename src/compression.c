@@ -11,7 +11,9 @@ bool supports_gzip(request_t *req) {
 }
 
 int compress_body(response_t *res) {
-    char compressed[MAX_BODY_SIZE];
+    unsigned char compressed[MAX_BODY_SIZE + (MAX_BODY_SIZE / 1000) +
+                             13]; // gzip compressed output can by slightly
+                                  // larger than input
     size_t compressed_len = sizeof(compressed);
 
     // creates and zero a compression stream
@@ -19,20 +21,25 @@ int compress_body(response_t *res) {
     z_stream zs = {0};
 
     // initialises the stream for gzip compression
-    deflateInit2(
-        &zs, 
-        Z_DEFAULT_COMPRESSION, // balances speed and size
-        Z_DEFLATED, // compression algorithm
-        15 + 16, // 15: use a 32KB window +16: output GZIP format, not raw
-        8, // use 256 bytes for the internal buffer
-        Z_DEFAULT_STRATEGY // works for both text and binary
-    );
+    if (deflateInit2(
+            &zs,
+            Z_DEFAULT_COMPRESSION, // balances speed and size
+            Z_DEFLATED,            // compression algorithm
+            15 + 16, // 15: use a 32KB window +16: output GZIP format, not raw
+            8,       // use 256 bytes for the internal buffer
+            Z_DEFAULT_STRATEGY // works for both text and binary
+            ) != Z_OK) {
+        return -1;
+    }
 
-    zs.next_in = (Bytef *)res->body; // keeps track of the current position in the input
+    zs.next_in =
+        (Bytef *)res->body; // keeps track of the current position in the input
     zs.avail_in = res->body_len; // how bytes remain to compress
 
-    zs.next_out = (Bytef *)compressed; // keeps track of the current write position in the output
-    zs.avail_out = compressed_len; // how much space is available in the output buffer
+    zs.next_out = (Bytef *)
+        compressed; // keeps track of the current write position in the output
+    zs.avail_out =
+        compressed_len; // how much space is available in the output buffer
 
     int ref = deflate(&zs, Z_FINISH); // performs the compression
     if (ref != Z_STREAM_END) {
@@ -40,7 +47,8 @@ int compress_body(response_t *res) {
         return -2;
     }
 
-    compressed_len = zs.total_out; // updates the actual size of the compressed data
+    compressed_len =
+        zs.total_out; // updates the actual size of the compressed data
 
     deflateEnd(&zs);
 

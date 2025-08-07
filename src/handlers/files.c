@@ -20,20 +20,20 @@ void handle_post_file(request_t *req, response_t *res) {
         snprintf(full_path, sizeof(full_path), "%s/%s", base_path, filename);
     if (n < 0 || n >= (int)sizeof(full_path)) {
         res->status_code = STATUS_INTERNAL_SERVER_ERR;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         return;
     }
 
     FILE *file = fopen(full_path, "w");
     if (!file) {
         res->status_code = STATUS_NOT_FOUND;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         return;
     }
 
     if (!isPathSafe(base_path, full_path)) {
         res->status_code = STATUS_BAD_REQUEST;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         return;
     }
 
@@ -41,7 +41,7 @@ void handle_post_file(request_t *req, response_t *res) {
         size_t written = fwrite(req->body, 1, req->body_len, file);
         if (written != req->body_len) {
             res->status_code = STATUS_INTERNAL_SERVER_ERR;
-            headers_add(&res->headers, "Content-Length", "0");
+            res->body_len = 0;
             fclose(file);
             return;
         }
@@ -49,7 +49,7 @@ void handle_post_file(request_t *req, response_t *res) {
 
     fclose(file);
     res->status_code = STATUS_CREATED;
-    headers_add(&res->headers, "Content-Length", "0");
+    res->body_len = 0;
 }
 
 void handle_get_file(request_t *req, response_t *res) {
@@ -61,20 +61,20 @@ void handle_get_file(request_t *req, response_t *res) {
         snprintf(full_path, sizeof(full_path), "%s/%s", base_path, filename);
     if (n < 0 || n >= (int)sizeof(full_path)) {
         res->status_code = STATUS_INTERNAL_SERVER_ERR;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         return;
     }
 
     FILE *file = fopen(full_path, "rb");
     if (!file) {
         res->status_code = STATUS_NOT_FOUND;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         return;
     }
 
     if (!isPathSafe(base_path, full_path)) {
         res->status_code = STATUS_BAD_REQUEST;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         fclose(file);
         return;
     }
@@ -84,7 +84,7 @@ void handle_get_file(request_t *req, response_t *res) {
     if (file_size < 0 || file_size > MAX_BODY_SIZE) {
         fclose(file);
         res->status_code = STATUS_INTERNAL_SERVER_ERR;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         return;
     }
     fseek(file, 0, SEEK_SET);
@@ -94,7 +94,7 @@ void handle_get_file(request_t *req, response_t *res) {
 
     if (total_read != (size_t)file_size) {
         res->status_code = STATUS_INTERNAL_SERVER_ERR;
-        headers_add(&res->headers, "Content-Length", "0");
+        res->body_len = 0;
         return;
     }
 
@@ -104,9 +104,6 @@ void handle_get_file(request_t *req, response_t *res) {
     res->status_code = STATUS_OK;
     res->body_len = total_read;
 
-    char len_str[16];
-    snprintf(len_str, sizeof(len_str), "%zu", res->body_len);
-    headers_add(&res->headers, "Content-Length", len_str);
     headers_add(&res->headers, "Content-Type", "application/octet-stream");
 }
 

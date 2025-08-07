@@ -41,12 +41,15 @@ int response_send(int fd, response_t *res) {
 
     // perform compression if specified
     if (res->content_encoding == ENCODING_GZIP) {
-        if (res->body_len > 0) {
-            compress_body(res);
+        if (compress_body(res) == 0) {
+            headers_add(&res->headers, "Content-Encoding", "gzip");
         }
-
-        headers_add(&res->headers, "Content-Encoding", "gzip");
     }
+
+    // set Content-Length header
+    char len_str[16];
+    snprintf(len_str, sizeof(len_str), "%zu", res->body_len);
+    headers_add(&res->headers, "Content-Length", len_str);
 
     // Add status line
     int n = snprintf(header, sizeof(header), "HTTP/1.1 %d %s\r\n",
