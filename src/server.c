@@ -144,6 +144,7 @@ void *handle_connection(void *arg) {
         }
     }
 
+    printf("Closing connection\n");
     close(client_fd);
     return NULL;
 }
