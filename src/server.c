@@ -122,6 +122,9 @@ void *handle_connection(void *arg) {
                                   ? STATUS_INTERNAL_SERVER_ERR
                                   : STATUS_BAD_REQUEST;
             response_send(client_fd, &res);
+            response_cleanup(&res);
+            request_cleanup(&req);
+            break;
         }
 
         dispatcher(&req, &res);
