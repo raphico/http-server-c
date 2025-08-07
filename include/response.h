@@ -1,6 +1,5 @@
 #pragma once
 
-#include "compression.h"
 #include "headers.h"
 #include "protocol.h"
 #include "server.h"

@@ -39,7 +39,12 @@ int response_send(int fd, response_t *res) {
     char header[MAX_HEADER_SIZE];
     size_t offset = 0;
 
+    // perform compression if specified
     if (res->content_encoding == ENCODING_GZIP) {
+        if (res->body_len > 0) {
+            compress_body(res);
+        }
+
         headers_add(&res->headers, "Content-Encoding", "gzip");
     }
 

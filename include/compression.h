@@ -1,10 +1,8 @@
 #pragma once
 
 #include "request.h"
+#include "response.h"
 
-typedef enum {
-    ENCODING_IDENTITY,
-    ENCODING_GZIP,
-} content_encoding_t;
 
 bool supports_gzip(request_t *req);
+int compress_body(response_t *res);

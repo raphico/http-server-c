@@ -1,4 +1,5 @@
 #include "handlers/files.h"
+#include "compression.h"
 #include "headers.h"
 #include "protocol.h"
 #include "status.h"
