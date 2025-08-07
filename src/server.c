@@ -129,12 +129,15 @@ void *handle_connection(void *arg) {
 
         dispatcher(&req, &res);
 
+        char *conn_header = headers_get(&req.headers, "connection");
+        bool close_conn = conn_header && strcasecmp(conn_header, "close") == 0;
+        if (close_conn) {
+            headers_add(&res.headers, "Connection", "close");
+        }
+
         if (response_send(client_fd, &res) == -1) {
             perror("send_response");
         }
-
-        char *conn_header = headers_get(&req.headers, "connection");
-        bool close_conn = conn_header && strcasecmp(conn_header, "close") == 0;
 
         response_cleanup(&res);
         request_cleanup(&req);
