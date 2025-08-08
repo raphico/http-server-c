@@ -3,6 +3,7 @@
 #include "headers.h"
 #include "protocol.h"
 #include "status.h"
+#include <stdbool.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>

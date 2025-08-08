@@ -1,37 +1,113 @@
 [![progress-banner](https://backend.codecrafters.io/progress/http-server/e590a1ed-5581-4c50-92c3-173fc54ce8b7)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
-This is a starting point for C solutions to the
-["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
+A minimal HTTP/1.1 server written from scratch in C. Built as part of the ["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
 
-[HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) is the
-protocol that powers the web. In this challenge, you'll build a HTTP/1.1 server
-that is capable of serving multiple clients.
+## Features
 
-Along the way you'll learn about TCP servers,
-[HTTP request syntax](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html),
-and more.
+1. Manual HTTP/1.1 Request Parsing
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+   - a custom HTTP parser in C
+   - Supports request line parsing, header parsing, and body extraction
 
-# Passing the first stage
+2. Response generation pipeline
 
-The entry point for your HTTP server implementation is in `src/main.c`. Study
-and uncomment the relevant code, and push your changes to pass the first stage:
+   - Dynamically builds and sends HTTP/1.1 responses with proper status lines, headers, and bodies
+   - Supports both text and binary payloads
 
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
+3. Routing System
+
+   - Simple internal dispatcher for mapping routes to handlers
+   - Supports static and dynamic routes (e.g., /echo/:string)
+
+4. Persistent Connections
+
+   - Reuses the same TCP connection for multiple HTTP requests when allowed by the client
+   - Correctly handles Connection: close request
+
+5. Static File Serving
+
+   - Serves files directly from the filesystem with correct Content-Type detection
+   - Efficiently streams large files without loading them fully into memory
+   - Prevents directory traversal attacks by sanitizing and validating file paths
+
+6. File Writing Support
+
+   - Allows safe writing of uploaded data to disk
+   - Enforces path restrictions to prevent overwriting or creating files outside allowed directories
+
+7. Gzip Compression
+
+   - Uses zlib to compress responses when the client supports Content-Encoding: gzip
+   - Falls back to uncompressed content when unsupported
+
+8. Error Handling & Status Codes
+
+   - Returns appropriate HTTP error responses (400, 404, 500, etc.)
+   - Handles malformed requests gracefully without crashing the server
+
+9. Concurrent/Threaded Connection Handling
+   - Each connection processed in its own thread for concurrent request handling
+
+## How to run
+
+1. Clone the repository
+
+```bash
+git clone git@github.com:raphico/http-server-c.git
+cd http-server-c
 ```
 
-Time to move on to the next stage!
+2. Start server
 
-# Stage 2 & beyond
+```bash
+./your_program.sh
+```
 
-Note: This section is for stages 2 and beyond.
+3. Try
 
-1. Ensure you have `cmake` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `src/main.c`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+```bash
+# Basic Request handling
+curl -v http://localhost:4221
+
+curl -v http://localhost:4221/echo/abc
+
+curl -v --header "User-Agent: foobar/1.2.3" http://localhost:4221/user-agent
+
+# Concurrent connections
+(sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+(sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+(sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+
+# File Reading/writing
+echo -n 'Hello, World!' > /tmp/foo
+curl -i http://localhost:4221/files/foo
+
+curl -v --data "12345" -H "Content-Type: application/octet-stream" http://localhost:4221/files/file_123
+
+# HTTP compression
+curl -v -H "Accept-Encoding: gzip" http://localhost:4221/echo/abc | hexdump -C
+
+# Persistent connections
+curl --http1.1 -v http://localhost:4221/echo/banana --next http://localhost:4221/user-agent -H "User-Agent: blueberry/apple-blueberry"
+
+curl --http1.1 -v http://localhost:4221/echo/orange --next http://localhost:4221/ -H "Connection: close"
+```
+
+## Project Structure
+
+```bash
+├── src/                         # Core source code for the HTTP server
+│   ├── main.c                   # Program entry point
+│   ├── server.c                 # Creates socket, binds, listens, and accepts client connections
+│   ├── request.c                # Manual HTTP/1.1 request parsing
+│   ├── response.c               # Constructs and sends HTTP responses to clients
+│   ├── dispatcher.c             # Routes parsed requests to the appropriate handler
+│   ├── compression.c            # Implements gzip compression using zlib
+│   ├── utils.c                  # General helper and utility functions
+│   ├── status.c                 # Defines HTTP status codes and their corresponding messages
+│   ├── headers.c                # Handles HTTP header creation and management
+│   │
+│   └── handlers/                # Individual route handlers for specific endpoints
+│
+└── include/                     # Header files for modularity, type definitions, and forward declarations
+```

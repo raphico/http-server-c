@@ -4,6 +4,7 @@
 #include "request.h"
 #include "response.h"
 #include "status.h"
+#include <stdbool.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
