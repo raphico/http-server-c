@@ -1,6 +1,13 @@
 [![progress-banner](https://backend.codecrafters.io/progress/http-server/e590a1ed-5581-4c50-92c3-173fc54ce8b7)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
-A minimal HTTP/1.1 server written from scratch in C. Built as part of the ["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
+A minimal HTTP/1.1 server written from scratch in C.
+
+## Why I built this
+
+1. Practice C: sockets I/O, file I/O, concurrency, and memory safe pattern
+2. Explore safe alternative in C (avoiding unsafe internal pointers in concurrent apps)
+3. Learn idiomatic C structure and modular code organization
+4. Compare different approaches for the same problem (`snprintf`, `memcpy`, stack vs heap memory) and understand trade-offs
 
 ## Features
 
@@ -106,8 +113,11 @@ curl --http1.1 -v http://localhost:4221/echo/orange --next http://localhost:4221
 │   ├── utils.c                  # General helper and utility functions
 │   ├── status.c                 # Defines HTTP status codes and their corresponding messages
 │   ├── headers.c                # Handles HTTP header creation and management
-│   │
 │   └── handlers/                # Individual route handlers for specific endpoints
 │
 └── include/                     # Header files for modularity, type definitions, and forward declarations
 ```
+
+## Try the Challenge Yourself
+
+This project was built as part of the [Codecrafters "Build Your Own HTTP Server" Challenge](https://app.codecrafters.io/r/zealous-guineapig-988263). Use my link to get **7 days free** if you want to take the challenge and build your own server from scratch.
