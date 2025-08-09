@@ -4,10 +4,17 @@ A minimal HTTP/1.1 server written from scratch in C.
 
 ## Why I built this
 
-1. Practice C: sockets I/O, file I/O, concurrency, and memory safe pattern
-2. Explore safe alternative in C (avoiding unsafe internal pointers in concurrent apps)
-3. Learn idiomatic C structure and modular code organization
-4. Compare different approaches for the same problem (`snprintf`, `memcpy`, stack vs heap memory) and understand trade-offs
+I built this project to practice C in a real-world context, working with socket I/O, file I/O, concurrency, and the standard library. It helped me deepen my understanding of memory management, focusing on safe design patterns, stack vs. heap trade-offs, and avoiding pitfalls like unsafe internal pointers.
+
+I also explored multiple approaches to the same problem (e.g., `snprintf` vs. `sprintf`, `snprintf` vs. `itoa`, `strtok_r` vs. `strtok`, `memcpy`, `strdup` vs `strcpy`, `strncpy`) to understand why certain methods are preferred for safety and performance.
+
+Finally, this was an exercise in writing idiomatic C, with a modular, maintainable code structure
+
+## Architecture overview
+
+This section outlines the main components of the program and how they interact — from the moment a client opens a TCP connection, through request parsing, routing, and response generation.
+
+See the [sequence diagram](./docs/architecture.png) for a visual walkthrough of the process.
 
 ## Features
 
