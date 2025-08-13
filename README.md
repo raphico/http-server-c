@@ -53,6 +53,17 @@ A minimal HTTP/1.1 server written from scratch in C.
 9. Concurrent/Threaded Connection Handling
    - Each connection processed in its own thread for concurrent request handling
 
+## Tech Stack
+
+- **Language:** C (C99 standard)
+- **Networking:** BSD sockets API (`<sys/socket.h>`, `<netinet/in.h>`) for low-level TCP/IP communication
+- **Concurrency:** POSIX threads (`pthreads`) for multi-client connection handling
+- **Platform:** Developed and tested on Linux. Compatible with macOS (POSIX-compliant). Windows support would require adapting socket code to Winsock and replacing `pthreads`
+- **Build System:** CMake (project configuration) with Ninja (fast incremental builds)
+- **Compiler:** Clang (tested; compatible with GCC)
+- **Package Manager:** vcpkg for dependency management
+- **Libraries:** zlib (gzip compression support)
+
 ## How to run
 
 1. Clone the repository
